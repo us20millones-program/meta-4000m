@@ -61,6 +61,24 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 .link{background:none;color:var(--mut);text-decoration:underline;padding:4px}
 .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
 #sync{font-size:.85rem;color:var(--mut)}
+#sync2{font-size:.85rem;color:var(--mut)}
+.ide{display:grid;grid-template-columns:300px 1fr;background:#0B2233;border-radius:6px;overflow:hidden;min-height:420px;color:#DCEBF2}
+#tree{border-right:1px solid #1d3b52;padding:10px 0;overflow:auto;max-height:640px;font-size:.85rem}
+.t{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:none;border:0;border-radius:0;color:inherit;padding:4px 8px;font:inherit;cursor:pointer}
+.t:hover{background:#13324a}.t.sel{background:#1c4766}
+.t .ar{width:12px;color:#7A97A8}.t em{margin-left:auto;font-style:normal;color:#7A97A8;font-size:.75rem}
+.l1{padding-left:10px}.l2{padding-left:26px}.l3{padding-left:44px}
+.ed{padding:14px 18px;overflow:auto;max-height:640px}
+#crumb{color:#7A97A8;font-size:.8rem;margin-bottom:10px}
+.ed h3{margin:0 0 8px;font-size:1.05rem;color:#F5B700}
+.ed .c{color:#7A97A8;font-size:.85rem}
+.ed textarea,.ed .ti{width:100%;background:#0F2A3D;color:#DCEBF2;border:1px solid #1d3b52;border-radius:4px;font:inherit;font-size:.85rem;padding:6px 8px}
+.ed textarea{min-height:260px;line-height:1.6;resize:vertical}
+.it{display:flex;gap:8px;align-items:center;margin:5px 0}
+.it input[type=checkbox]{width:18px;height:18px;flex:none}
+.it .x{background:none;color:#7A97A8;padding:2px 8px}
+.it.d .ti{text-decoration:line-through;opacity:.6}
+@media (max-width:760px){.ide{grid-template-columns:1fr}#tree{border-right:0;border-bottom:1px solid #1d3b52;max-height:320px}}
 @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
 </head>
@@ -72,7 +90,7 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
   <div class="track" id="track" role="img" aria-label="Progreso total hacia la meta"></div>
   <div class="legend" id="legend"></div>
   <div id="check"></div>
-  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><button id="chpw" class="link" hidden>Cambiar contraseña</button><span id="sync"></span></div>
+  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><button id="chpw" class="link" hidden>Cambiar contraseña</button><span id="sync"></span><span id="sync2"></span></div>
 </header>
 <div id="login" hidden>
   <form id="lf">
@@ -87,6 +105,15 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 </div>
 
 <main id="mods"></main>
+
+<section class="codep" id="explorer-sec">
+  <h2>Explorador de proyectos</h2>
+  <p class="sub">Abre cada proyecto como una carpeta. En <b>aporte.ts</b> ves cuánto suma a la meta general; en <b>puerta-de-avance.md</b>, lo que falta para pasar de estado.</p>
+  <div class="ide">
+    <nav id="tree" aria-label="Árbol de proyectos"></nav>
+    <div class="ed"><div id="crumb"></div><div id="edit"></div></div>
+  </div>
+</section>
 
 <section class="codep">
   <h2>El sistema como código</h2>
@@ -146,6 +173,7 @@ function buildCards(){
     <div class="row"><label for="m${i}">meta COP</label><input class="money" id="m${i}" inputmode="numeric" data-i="${i}" data-f="meta" value="${m.meta.toLocaleString("es-CO")}"></div>
     <div class="row"><label for="l${i}">logrado COP</label><input class="money" id="l${i}" inputmode="numeric" data-i="${i}" data-f="logrado" value="${m.logrado.toLocaleString("es-CO")}"></div>
     <div class="bar"><div id="b${i}"></div></div><div class="pct" id="p${i}"></div>
+    <button class="link" data-open="${m.id}">Abrir en el explorador →</button>
   </article>`).join("");
 }
 
@@ -220,6 +248,152 @@ window.addEventListener("beforeinstallprompt", e => {
   b.onclick = async () => { b.hidden = true; dp.prompt(); await dp.userChoice; dp = null; };
 });
 
+/* Explorador de proyectos (árbol) */
+const AK = "meta4000_arbol_v1";
+const BR = [
+ ["aporte","aporte.ts","calc"],
+ ["avance","puerta-de-avance.md","check"],
+ ["recursos","requeridos.md","check"],["recursos","existentes.md","check"],["recursos","basicos.md","check"],["recursos","faltantes.md","check"],
+ ["personas","contactos.md","nota"],["personas","aliados.md","check"],["personas","proveedores.md","check"],["personas","equipo.md","check"],["personas","clientes-objetivo.md","nota"],
+ ["herramientas","herramientas.md","check"],["herramientas","plataformas-y-apps.md","check"],["herramientas","documentos-modelo.md","check"],
+ ["plan","plan.md","nota"],["plan","tareas-obligatorias.md","check"],["plan","hitos.md","check"],["plan","cronograma.md","nota"],["plan","checklist-lanzamiento.md","check"],
+ ["analisis","foda.md","nota"],["analisis","mercado.md","nota"],["analisis","competencia.md","nota"],["analisis","riesgos.md","check"],["analisis","supuestos.md","nota"],
+ ["finanzas","presupuesto.md","nota"],["finanzas","capital-requerido.md","nota"],["finanzas","ingresos-esperados.md","nota"],["finanzas","costos.md","nota"],["finanzas","punto-de-equilibrio.md","nota"],
+ ["legal","permisos-y-licencias.md","check"],["legal","contratos.md","check"],
+ ["marketing","canales.md","check"],["marketing","mensajes-y-oferta.md","nota"],
+ ["metricas","kpi.md","check"],["metricas","bitacora.md","nota"]
+];
+const FOLDERS = [...new Set(BR.map(b=>b[0]))];
+const GATES = {"Idea":["Definir dueño","Definir recursos requeridos","Armar plan de 90 días"],"En construcción":["Capital asegurado","Aliados confirmados","Prueba piloto con un cliente"],"Lista":["Primeras ventas","Medir la métrica cada semana"],"Operando":["Replicar o escalar"]};
+const NEXT = {"Idea":"En construcción","En construcción":"Lista","Lista":"Operando","Operando":"Operando"};
+const SEED = {
+ Mesolandia:{"recursos/requeridos.md":["Capital de $500.000.000 para comprar la propiedad","Adecuaciones"],"recursos/basicos.md":["Materia prima","Pedidos"]},
+ DPS:{"recursos/requeridos.md":["Productos de aseo hogar","Pollo y cerdo fresco nacional","Harina de trigo El Lobo"],"personas/clientes-objetivo.md":"50 negocios del centro afiliados a GoMart"}
+};
+const GP = "avance/puerta-de-avance.md";
+let A = {}, sel = null, ta = null;
+try { A = JSON.parse(localStorage.getItem(AK) || "{}"); } catch(e) {}
+const openM = new Set(), openF = new Set();
+const typeOf = p => (BR.find(b => b[0]+"/"+b[1] === p) || [])[2];
+const key = (m,p) => p === GP ? p+"@"+m.estado : p;
+function get(m,p){
+  const v = (A[m.id] || {})[key(m,p)]; if (v !== undefined) return v;
+  if (p === GP) return GATES[m.estado].map(t => ({t, d:false}));
+  const s = (SEED[m.id] || {})[p];
+  if (s === undefined) return typeOf(p) === "check" ? [] : "";
+  return Array.isArray(s) ? s.map(t => ({t, d:false})) : s;
+}
+function setV(m,p,v){
+  (A[m.id] = A[m.id] || {})[key(m,p)] = v;
+  try { localStorage.setItem(AK, JSON.stringify(A)); } catch(e) {}
+  pushA();
+}
+function prog(m){
+  let d = 0, t = 0;
+  BR.forEach(b => { if (b[2] === "check") { const l = get(m, b[0]+"/"+b[1]); t += l.length; d += l.filter(x => x.d).length; } });
+  return [d, t];
+}
+function renderTree(){
+  let h = `<div class="t l1" style="cursor:default"><span class="ar">▾</span>META-4.000.000.000-COP</div>`;
+  S.forEach(m => {
+    const o = openM.has(m.id), [d,t] = prog(m);
+    h += `<button class="t l1" data-m="${m.id}"><span class="ar">${o?"▾":"▸"}</span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${m.color}"></i>${m.id}<em>${d}/${t}</em></button>`;
+    if (!o) return;
+    FOLDERS.forEach(f => {
+      const fo = openF.has(m.id+"/"+f);
+      h += `<button class="t l2" data-f="${m.id}|${f}"><span class="ar">${fo?"▾":"▸"}</span>${f}/</button>`;
+      if (!fo) return;
+      BR.filter(b => b[0] === f).forEach(b => {
+        const p = f+"/"+b[1], on = sel && sel.m === m.id && sel.p === p;
+        h += `<button class="t l3${on?" sel":""}" data-p="${m.id}|${p}">${b[1]}</button>`;
+      });
+    });
+  });
+  $("tree").innerHTML = h;
+}
+function renderEd(){
+  if (!sel) { $("crumb").textContent = "META › selecciona un proyecto"; $("edit").innerHTML = '<p class="c">Abre un proyecto en el árbol y elige un archivo para ver o editar su contexto.</p>'; return; }
+  const m = S.find(x => x.id === sel.m), p = sel.p, ty = typeOf(p);
+  $("crumb").textContent = "META › " + m.id + " › " + p.replace("/", " › ");
+  let h = `<h3>${esc(p.split("/")[1])}</h3>`;
+  if (ty === "calc") {
+    const pc = (a,b) => b ? (a/b*100).toFixed(1).replace(".",",")+"%" : "0%";
+    const [d,t] = prog(m), bl = S.filter(x => x.dep.includes(m.id)).map(x => x.id).concat(m.blocks || []);
+    h += `<pre class="mono">${[
+      `meta        ${cop(m.meta)}  (${pc(m.meta,META)} de la meta general)`,
+      `logrado     ${cop(m.logrado)}  (${pc(m.logrado,m.meta)} de su meta · ${pc(m.logrado,META)} de la general)`,
+      `falta       ${cop(Math.max(0, m.meta-m.logrado))}`,
+      `estado      ${m.estado} → siguiente: ${NEXT[m.estado]}`,
+      `tareas      ${d} de ${t} hechas`,
+      `depende_de  ${[...m.dep, ...(m.req||[])].join(", ") || "nada"}`,
+      `bloquea_a   ${bl.join(", ") || "nada"}`
+    ].map(esc).join("\n")}</pre>`;
+  } else if (ty === "check") {
+    if (p === GP) h += `<p class="c">Para pasar de «${esc(m.estado)}» a «${esc(NEXT[m.estado])}» se requiere:</p>`;
+    const l = get(m,p);
+    h += l.map((x,i) => `<div class="it${x.d?" d":""}"><input type="checkbox" data-c="${i}"${x.d?" checked":""} aria-label="Hecho"><input class="ti" data-t="${i}" value="${esc(x.t)}"><button class="x" data-x="${i}" aria-label="Quitar">✕</button></div>`).join("");
+    h += `<div class="it"><input class="ti" id="nw" placeholder="Añadir ítem y presionar Enter"><button id="add">Añadir</button></div><p class="c">${l.filter(x=>x.d).length} de ${l.length} hechas</p>`;
+  } else h += `<textarea id="tx" placeholder="Escribe aquí el contexto de este punto…">${esc(get(m,p))}</textarea>`;
+  $("edit").innerHTML = h;
+}
+function openMod(id){
+  openM.add(id); openF.add(id+"/aporte"); sel = {m:id, p:"aporte/aporte.ts"};
+  renderTree(); renderEd(); $("explorer-sec").scrollIntoView({behavior:"smooth"});
+}
+const curM = () => S.find(x => x.id === sel.m);
+function addItem(){
+  const v = $("nw").value.trim(); if (!v) return;
+  const m = curM(), l = get(m, sel.p).slice(); l.push({t:v, d:false}); setV(m, sel.p, l);
+  renderTree(); renderEd(); $("nw").focus();
+}
+$("tree").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const d = b.dataset;
+  if (d.m) { openM.has(d.m) ? openM.delete(d.m) : openM.add(d.m); }
+  else if (d.f) { const k = d.f.replace("|","/"); openF.has(k) ? openF.delete(k) : openF.add(k); }
+  else if (d.p) { const [mm, ...r] = d.p.split("|"); sel = {m:mm, p:r.join("|")}; }
+  renderTree(); renderEd();
+});
+$("edit").addEventListener("input", e => {
+  if (!sel) return; const m = curM(), p = sel.p, t = e.target;
+  if (t.id === "tx") setV(m, p, t.value);
+  else if (t.dataset.t !== undefined) { const l = get(m,p).slice(); l[t.dataset.t] = {...l[t.dataset.t], t:t.value}; setV(m, p, l); }
+});
+$("edit").addEventListener("change", e => {
+  if (!sel || e.target.dataset.c === undefined) return;
+  const m = curM(), p = sel.p, l = get(m,p).slice(), i = +e.target.dataset.c;
+  l[i] = {...l[i], d:e.target.checked}; setV(m, p, l); renderTree(); renderEd();
+});
+$("edit").addEventListener("click", e => {
+  if (!sel) return; const m = curM(), p = sel.p, t = e.target;
+  if (t.dataset.x !== undefined) { const l = get(m,p).slice(); l.splice(+t.dataset.x, 1); setV(m, p, l); renderTree(); renderEd(); }
+  else if (t.id === "add") addItem();
+});
+$("edit").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "nw") { e.preventDefault(); addItem(); } });
+$("mods").addEventListener("change", () => { renderTree(); if (sel) renderEd(); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) openMod(b.dataset.open); });
+function pushA(){
+  if (!sb || !user) return;
+  clearTimeout(ta);
+  ta = setTimeout(async () => {
+    const rows = Object.keys(A).map(id => ({user_id:user.id, id, data:A[id]}));
+    if (!rows.length) return;
+    const {error} = await sb.from("meta_arbol").upsert(rows, {onConflict:"user_id,id"});
+    $("sync2").textContent = error ? "Árbol sin sincronizar (¿creaste la tabla meta_arbol?)" : "Árbol sincronizado";
+  }, 800);
+}
+async function pullA(){
+  if (!sb || !user) return;
+  const {data, error} = await sb.from("meta_arbol").select("*");
+  if (error) { $("sync2").textContent = "Árbol sin sincronizar (¿creaste la tabla meta_arbol?)"; return; }
+  data.forEach(r => { A[r.id] = r.data || {}; });
+  try { localStorage.setItem(AK, JSON.stringify(A)); } catch(e) {}
+  $("sync2").textContent = "Árbol sincronizado";
+  renderTree(); renderEd();
+  if (!data.length) pushA();
+}
+renderTree(); renderEd();
+
 /* Nube (Supabase): inicio de sesión + sincronización */
 const setSync = t => { $("sync").textContent = t; };
 
@@ -254,6 +428,7 @@ async function onLogin(u){
   $("logout").hidden = false;
   $("chpw").hidden = false;
   await pull();
+  await pullA();
 }
 
 (async function startAuth(){
@@ -287,7 +462,7 @@ $("chpw").addEventListener("click", async () => {
   if (error) { alert("No se pudo cambiar: " + error.message); return; }
   alert("Contraseña cambiada. Úsala la próxima vez que entres.");
 });
-document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { pull(); pullA(); } });
 </script>
 </body>
 </html>
