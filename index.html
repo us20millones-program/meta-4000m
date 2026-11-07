@@ -93,6 +93,15 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 .nw textarea{border:0;border-radius:0;white-space:pre;overflow:auto}
 .addrow{display:flex;gap:2px}.addrow .t{width:auto;color:#7A97A8;font-size:.78rem}
 .nf{color:#7A97A8}.ed .link{color:#9FB7C6}
+.mainb{background:#0B2233;color:#DCEBF2;border-radius:6px;padding:16px 18px}
+.mh{color:#F5B700;margin-bottom:12px;font-size:.9rem}
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.mainb h3{margin:0 0 6px;font-size:.78rem;color:#7A97A8;text-transform:uppercase;letter-spacing:.06em}
+.ml{display:flex;gap:10px;font-size:.82rem;line-height:1.6;margin:3px 0}
+.ml .ln{flex:none;margin:0}
+.mainb .link{color:#7FD6C2;padding:0;font-size:inherit}
+.mainb i{color:#F5B700;font-style:normal}
+.c2{font-size:.85rem;color:var(--mut)}
 @media (max-width:760px){.ide{grid-template-columns:1fr}#tree{border-right:0;border-bottom:1px solid #1d3b52;max-height:320px}}
 @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
@@ -118,6 +127,8 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
     <button type="button" id="skip" class="link">Usar sin cuenta (solo este dispositivo)</button>
   </form>
 </div>
+
+<section class="codep" id="mainp" aria-label="MAIN, centro de mando"></section>
 
 <main id="mods"></main>
 
@@ -313,7 +324,7 @@ function prog(m){
   return [d, t];
 }
 function renderTree(){
-  let h = `<div class="t l1" style="cursor:default"><span class="ar">▾</span>META-4.000.000.000-COP</div>`;
+  let h = `<div class="t l1" style="cursor:default"><span class="ar">▾</span>META-4.000.000.000-COP</div><button class="t l1" data-main="1"><span class="ar"> </span>▶ MAIN</button>`;
   S.forEach(m => {
     const o = openM.has(m.id), [d,t] = prog(m);
     h += `<button class="t l1" data-m="${m.id}"><span class="ar">${o?"▾":"▸"}</span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${m.color}"></i>${m.id}<em>${d}/${t}</em></button>`;
@@ -332,6 +343,7 @@ function renderTree(){
     h += `<button class="t l2 nf" data-addd="${m.id}">＋ nueva carpeta</button>`;
   });
   $("tree").innerHTML = h;
+  renderMain();
 }
 function renderEd(){
   renderTabs();
@@ -363,6 +375,53 @@ function renderEd(){
   }
   $("edit").innerHTML = h;
 }
+const ESTR = ["Idea","En construcción","Lista","Operando"];
+function deps(m){
+  const out = new Set(), q = [m.id];
+  while (q.length) { const id = q.pop(); S.forEach(x => { if (x.dep.includes(id) && !out.has(x.id)) { out.add(x.id); q.push(x.id); } }); }
+  return out;
+}
+const lk = id => `<button class="link" data-open="${esc(id)}">${esc(id)}</button>`;
+function renderMain(){
+  const lo = S.reduce((a,m) => a + m.logrado, 0), me = S.reduce((a,m) => a + m.meta, 0);
+  const rows = S.filter(m => m.estado !== "Operando").map(m => ({
+    m, n: deps(m).size, falta: Math.max(0, m.meta - m.logrado),
+    blk: m.dep.map(id => S.find(x => x.id === id)).filter(d => d && ESTR.indexOf(d.estado) < 2).map(d => d.id)
+  })).sort((a,b) => (a.blk.length > 0) - (b.blk.length > 0) || b.n - a.n || b.falta - a.falta);
+  const L = (n,t) => `<div class="ml"><span class="ln">${n}</span><span>${t}</span></div>`;
+  const cola = rows.map((r,i) => L(i+1, `${lk(r.m.id)} · desbloquea ${r.n} · falta ${cop(r.falta)}`
+    + (r.blk.length ? ` · <i>espera a ${r.blk.map(esc).join(", ")}</i>` : "")
+    + ((r.m.req||[]).length ? ` · <i>requiere: ${r.m.req.map(esc).join(" + ")}</i>` : ""))).join("") || L(1, "Todos los módulos están operando.");
+  const al = [];
+  const sd = S.filter(m => !String(m.owner || "").trim()).map(m => m.id);
+  if (sd.length) al.push(`Sin dueño: ${sd.map(id => lk(id)).join(", ")}`);
+  if (me !== META) al.push(`Las metas suman ${cop(me)}: ${me < META ? "faltan " + cop(META-me) : "sobran " + cop(me-META)} para cerrar en ${cop(META)}`);
+  const gp = S.filter(m => m.estado !== "Operando").map(m => [m.id, get(m,GP).filter(x => !x.d).length]).filter(x => x[1]);
+  if (gp.length) al.push(`Puerta de avance pendiente: ${gp.map(x => lk(x[0]) + " (" + x[1] + ")").join(", ")}`);
+  const st = S.filter(m => prog(m)[1] === 0).map(m => m.id);
+  if (st.length) al.push(`Sin tareas cargadas: ${st.map(id => lk(id)).join(", ")}`);
+  S.forEach(m => { if (m.estado === "Operando" && m.logrado === 0) al.push(`${lk(m.id)} está operando pero su logrado es $0`); });
+  const rv = (A.__main || {}).rev || [], last = rv[rv.length-1];
+  const dias = last ? Math.floor((Date.now() - new Date(last + "T00:00:00")) / 864e5) : null;
+  if (dias === null) al.push("Aún no has marcado ninguna revisión semanal");
+  else if (dias > 7) al.push(`Última revisión hace ${dias} días`);
+  const tk = [];
+  rows.slice(0,4).forEach(r => {
+    const t = get(r.m, "plan/tareas-obligatorias.md").filter(x => !x.d).slice(0,2).map(x => x.t);
+    (t.length ? t : get(r.m, GP).filter(x => !x.d).slice(0,2).map(x => x.t)).forEach(x => tk.push(`${lk(r.m.id)} · ${esc(x)}`));
+  });
+  $("mainp").innerHTML = `<h2>MAIN</h2><p class="sub">El módulo que ejecuta todo: lee los demás proyectos, detecta bloqueos y te dice qué atender primero.</p>
+  <div class="mainb mono"><div class="mh">main() → ${(lo/META*100).toFixed(1).replace(".",",")}% de ${cop(META)} · ${rows.length} módulos sin operar</div>
+  <div class="mg"><div><h3>1 · cola de ejecución</h3>${cola}</div>
+  <div><h3>2 · alertas</h3>${al.length ? al.map((t,i) => L(i+1,t)).join("") : L(1,"Sin alertas.")}</div>
+  <div><h3>3 · esta semana</h3>${tk.length ? tk.map((t,i) => L(i+1,t)).join("") : L(1,"Sin tareas pendientes en los proyectos prioritarios.")}</div></div></div>
+  <div class="tools"><button id="rev">Marcar revisión de hoy</button><span class="c2">${last ? "Última revisión: " + esc(last) : ""}</span></div>`;
+}
+document.addEventListener("click", e => {
+  if (e.target.id !== "rev") return;
+  const mm = (A.__main = A.__main || {}); (mm.rev = mm.rev || []).push(new Date().toLocaleDateString("en-CA")); mm.rev = mm.rev.slice(-20);
+  persist(); renderMain();
+});
 function pick(m,p){ sel = {m,p}; if (!tabs.some(t => t.m === m && t.p === p)) tabs.push({m,p}); }
 function renderTabs(){
   $("tabs").innerHTML = tabs.map((t,i) => `<div class="tab${sel&&sel.m===t.m&&sel.p===t.p?" on":""}"><button data-tab="${i}">${esc(t.p.split("/")[1])} <small>${esc(t.m)}</small></button><button class="cl" data-close="${i}" aria-label="Cerrar pestaña">✕</button></div>`).join("");
@@ -431,7 +490,8 @@ function addItem(){
 $("tree").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   const d = b.dataset;
-  if (d.m) { openM.has(d.m) ? openM.delete(d.m) : openM.add(d.m); }
+  if (d.main) { $("mainp").scrollIntoView({behavior:"smooth"}); return; }
+  else if (d.m) { openM.has(d.m) ? openM.delete(d.m) : openM.add(d.m); }
   else if (d.f) { const k = d.f.replace("|","/"); openF.has(k) ? openF.delete(k) : openF.add(k); }
   else if (d.p) { const [mm, ...r] = d.p.split("|"); pick(mm, r.join("|")); }
   else if (d.add) { const [mm, f, ty] = d.add.split("|"); addFile(mm, f, ty); return; }
