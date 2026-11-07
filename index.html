@@ -91,6 +91,8 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 .nw pre,.nw textarea{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.85rem;line-height:1.6;padding:6px 8px;margin:0}
 .nw pre{background:#0B2233;color:#5B7080;text-align:right;overflow:hidden;min-width:3ch;user-select:none;border-radius:0}
 .nw textarea{border:0;border-radius:0;white-space:pre;overflow:auto}
+.addrow{display:flex;gap:2px}.addrow .t{width:auto;color:#7A97A8;font-size:.78rem}
+.nf{color:#7A97A8}.ed .link{color:#9FB7C6}
 @media (max-width:760px){.ide{grid-template-columns:1fr}#tree{border-right:0;border-bottom:1px solid #1d3b52;max-height:320px}}
 @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
@@ -288,13 +290,16 @@ let A = {}, sel = null, ta = null, tabs = [];
 const gutter = v => Array.from({length: String(v).split("\n").length}, (_, i) => i + 1).join("\n");
 try { A = JSON.parse(localStorage.getItem(AK) || "{}"); } catch(e) {}
 const openM = new Set(), openF = new Set();
-const typeOf = p => (BR.find(b => b[0]+"/"+b[1] === p) || [])[2];
+const X = m => (A[m.id] || {}).__x || [];
+const files = m => BR.concat(X(m).map(x => [x.f, x.n, x.t]));
+const folders = m => [...new Set([...FOLDERS, ...((A[m.id] || {}).__f || []), ...X(m).map(x => x.f)])];
+const typeOf = (m,p) => (files(m).find(b => b[0]+"/"+b[1] === p) || [])[2];
 const key = (m,p) => p === GP ? p+"@"+m.estado : p;
 function get(m,p){
   const v = (A[m.id] || {})[key(m,p)]; if (v !== undefined) return v;
   if (p === GP) return GATES[m.estado].map(t => ({t, d:false}));
   const s = (SEED[m.id] || {})[p];
-  if (s === undefined) return typeOf(p) === "check" ? [] : "";
+  if (s === undefined) return typeOf(m,p) === "check" ? [] : "";
   return Array.isArray(s) ? s.map(t => ({t, d:false})) : s;
 }
 function setV(m,p,v){
@@ -304,7 +309,7 @@ function setV(m,p,v){
 }
 function prog(m){
   let d = 0, t = 0;
-  BR.forEach(b => { if (b[2] === "check") { const l = get(m, b[0]+"/"+b[1]); t += l.length; d += l.filter(x => x.d).length; } });
+  files(m).forEach(b => { if (b[2] === "check") { const l = get(m, b[0]+"/"+b[1]); t += l.length; d += l.filter(x => x.d).length; } });
   return [d, t];
 }
 function renderTree(){
@@ -313,24 +318,28 @@ function renderTree(){
     const o = openM.has(m.id), [d,t] = prog(m);
     h += `<button class="t l1" data-m="${m.id}"><span class="ar">${o?"▾":"▸"}</span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${m.color}"></i>${m.id}<em>${d}/${t}</em></button>`;
     if (!o) return;
-    FOLDERS.forEach(f => {
-      const fo = openF.has(m.id+"/"+f);
-      h += `<button class="t l2" data-f="${m.id}|${f}"><span class="ar">${fo?"▾":"▸"}</span>${f}/</button>`;
+    folders(m).forEach(f => {
+      const fo = openF.has(m.id+"/"+f), fl = files(m).filter(b => b[0] === f);
+      h += `<button class="t l2" data-f="${m.id}|${esc(f)}"><span class="ar">${fo?"▾":"▸"}</span>${esc(f)}/</button>`;
       if (!fo) return;
-      BR.filter(b => b[0] === f).forEach(b => {
+      fl.forEach(b => {
         const p = f+"/"+b[1], on = sel && sel.m === m.id && sel.p === p;
-        h += `<button class="t l3${on?" sel":""}" data-p="${m.id}|${p}">${b[1]}</button>`;
+        h += `<button class="t l3${on?" sel":""}" data-p="${m.id}|${esc(p)}">${esc(b[1])}</button>`;
       });
+      if (!fl.length) h += `<button class="t l3" data-delf="${m.id}|${esc(f)}">(vacía) eliminar carpeta</button>`;
+      h += `<div class="l3 addrow"><button class="t" data-add="${m.id}|${esc(f)}|check">＋ checklist</button><button class="t" data-add="${m.id}|${esc(f)}|nota">＋ nota</button></div>`;
     });
+    h += `<button class="t l2 nf" data-addd="${m.id}">＋ nueva carpeta</button>`;
   });
   $("tree").innerHTML = h;
 }
 function renderEd(){
   renderTabs();
   if (!sel) { $("crumb").textContent = "META › selecciona un proyecto"; $("edit").innerHTML = '<p class="c">Abre un proyecto en el árbol y elige un archivo para ver o editar su contexto.</p>'; return; }
-  const m = S.find(x => x.id === sel.m), p = sel.p, ty = typeOf(p);
+  const m = S.find(x => x.id === sel.m), p = sel.p, ty = typeOf(m,p);
   $("crumb").textContent = "META › " + m.id + " › " + p.replace("/", " › ");
   let h = `<h3>${esc(p.split("/")[1])}</h3>`;
+  if (X(m).some(x => x.f+"/"+x.n === p)) h += `<p class="c"><button class="link" id="ren">Renombrar</button> · <button class="link" id="del">Eliminar archivo</button></p>`;
   if (ty === "calc") {
     const pc = (a,b) => b ? (a/b*100).toFixed(1).replace(".",",")+"%" : "0%";
     const [d,t] = prog(m), bl = S.filter(x => x.dep.includes(m.id)).map(x => x.id).concat(m.blocks || []);
@@ -374,6 +383,46 @@ function openMod(id){
   renderTree(); renderEd(); $("explorer-sec").scrollIntoView({behavior:"smooth"});
 }
 const curM = () => S.find(x => x.id === sel.m);
+const clean = v => v.replace(/[\/|]/g, "-").trim().slice(0, 40);
+function persist(){ try { localStorage.setItem(AK, JSON.stringify(A)); } catch(e) {} pushA(); }
+function addFile(mid, f, ty){
+  const m = S.find(x => x.id === mid), raw = prompt(ty === "check" ? "Nombre de la nueva checklist:" : "Nombre de la nueva nota:");
+  if (raw === null) return;
+  let n = clean(raw); if (!n) return;
+  if (!/\.[a-z]{2,3}$/i.test(n)) n += ".md";
+  if (files(m).some(b => b[0] === f && b[1].toLowerCase() === n.toLowerCase())) { alert("Ya existe un archivo con ese nombre en esta carpeta."); return; }
+  const d = (A[mid] = A[mid] || {}); (d.__x = d.__x || []).push({f, n, t:ty});
+  persist(); openF.add(mid+"/"+f); pick(mid, f+"/"+n); renderTree(); renderEd();
+}
+function addFolder(mid){
+  const m = S.find(x => x.id === mid), raw = prompt("Nombre de la nueva carpeta (por ejemplo: ideas, permisos, reuniones):");
+  if (raw === null) return;
+  const f = clean(raw).replace(/\.+$/, ""); if (!f) return;
+  if (folders(m).some(x => x.toLowerCase() === f.toLowerCase())) { alert("Ya existe una carpeta con ese nombre."); return; }
+  const d = (A[mid] = A[mid] || {}); (d.__f = d.__f || []).push(f);
+  persist(); openM.add(mid); openF.add(mid+"/"+f); renderTree();
+}
+function delFolder(mid, f){ const d = A[mid] || {}; d.__f = (d.__f || []).filter(x => x !== f); persist(); renderTree(); }
+function delFile(){
+  const m = curM(), p = sel.p, [f, n] = p.split("/");
+  if (!confirm("¿Eliminar «" + n + "» y todo su contenido? No se puede deshacer.")) return;
+  const d = A[m.id] || {}; d.__x = (d.__x || []).filter(x => !(x.f === f && x.n === n)); delete d[p];
+  tabs = tabs.filter(t => !(t.m === m.id && t.p === p));
+  const l = tabs[tabs.length-1]; sel = l ? {m:l.m, p:l.p} : null;
+  persist(); renderTree(); renderEd();
+}
+function renFile(){
+  const m = curM(), p = sel.p, [f, n] = p.split("/"), raw = prompt("Nuevo nombre del archivo:", n);
+  if (raw === null) return;
+  let nn = clean(raw); if (!nn) return;
+  if (!/\.[a-z]{2,3}$/i.test(nn)) nn += ".md";
+  if (nn !== n && files(m).some(b => b[0] === f && b[1].toLowerCase() === nn.toLowerCase())) { alert("Ya existe un archivo con ese nombre."); return; }
+  const d = A[m.id] || {}, np = f+"/"+nn;
+  (d.__x || []).forEach(x => { if (x.f === f && x.n === n) x.n = nn; });
+  if (d[p] !== undefined) { d[np] = d[p]; delete d[p]; }
+  tabs.forEach(t => { if (t.m === m.id && t.p === p) t.p = np; });
+  sel = {m:m.id, p:np}; persist(); renderTree(); renderEd();
+}
 function addItem(){
   const v = $("nw").value.trim(); if (!v) return;
   const m = curM(), l = get(m, sel.p).slice(); l.push({t:v, d:false}); setV(m, sel.p, l);
@@ -385,6 +434,9 @@ $("tree").addEventListener("click", e => {
   if (d.m) { openM.has(d.m) ? openM.delete(d.m) : openM.add(d.m); }
   else if (d.f) { const k = d.f.replace("|","/"); openF.has(k) ? openF.delete(k) : openF.add(k); }
   else if (d.p) { const [mm, ...r] = d.p.split("|"); pick(mm, r.join("|")); }
+  else if (d.add) { const [mm, f, ty] = d.add.split("|"); addFile(mm, f, ty); return; }
+  else if (d.addd) { addFolder(d.addd); return; }
+  else if (d.delf) { const [mm, f] = d.delf.split("|"); delFolder(mm, f); return; }
   renderTree(); renderEd();
 });
 $("edit").addEventListener("input", e => {
@@ -401,6 +453,8 @@ $("edit").addEventListener("click", e => {
   if (!sel) return; const m = curM(), p = sel.p, t = e.target;
   if (t.dataset.x !== undefined) { const l = get(m,p).slice(); l.splice(+t.dataset.x, 1); setV(m, p, l); renderTree(); renderEd(); }
   else if (t.id === "add") addItem();
+  else if (t.id === "del") delFile();
+  else if (t.id === "ren") renFile();
 });
 $("edit").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "nw") { e.preventDefault(); addItem(); } });
 $("edit").addEventListener("scroll", e => { if (e.target.id === "tx") $("gut").scrollTop = e.target.scrollTop; }, true);
