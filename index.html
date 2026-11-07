@@ -106,7 +106,7 @@ let sb = null, user = null, tmr = null;
 const BASE = [
  {id:"GoMart", color:"#0E8F8F", fn:"Motor de la red: comercios afiliados, wallet de bonos y gamificación (compras en A = bonos en B).", input:"Comercios afiliados y clientes", output:"Tráfico, transacciones y bonos canjeados", dep:[], meta:900000000, estado:"En construcción", owner:"", metrica:"Comercios activos / bonos canjeados al mes"},
  {id:"QuillaOfertas", color:"#C2185B", fn:"Revista física y virtual que publica los negocios afiliados a GoMart.", input:"Negocios afiliados", output:"Pauta, visibilidad y clientes para la red", dep:["GoMart"], meta:300000000, estado:"En construcción", owner:"", metrica:"Anunciantes por edición / ingreso por pauta"},
- {id:"Mesolandia", color:"#E07A1F", fn:"Centro de producción masiva de alimentos para venta a domicilio.", input:"Materia prima y pedidos", output:"Alimentos entregados a domicilio", dep:["GoMart"], meta:500000000, estado:"Lista", owner:"", metrica:"Pedidos por día / margen por pedido"},
+ {id:"Mesolandia", color:"#E07A1F", fn:"Centro de producción masiva de alimentos para venta a domicilio.", input:"Materia prima y pedidos", output:"Alimentos entregados a domicilio", dep:[], req:["Capital de $500.000.000 para comprar la propiedad","Adecuaciones"], blocks:"Todo el flujo de este proyecto", meta:500000000, estado:"Lista", owner:"", metrica:"Pedidos por día / margen por pedido"},
  {id:"OficinasVirtuales", color:"#3B6FB6", fn:"Representación internacional en Colombia de empresas extranjeras.", input:"Empresas extranjeras interesadas", output:"Contratos de representación y oficina virtual", dep:[], meta:300000000, estado:"En construcción", owner:"", metrica:"Clientes activos / ingreso mensual recurrente"},
  {id:"WCF", color:"#7B3FA0", fn:"World Carnival Festival: turismo cultural alrededor del Carnaval, con mercado europeo.", input:"Tráfico, aliados y reputación", output:"Eventos, paquetes turísticos y patrocinios", dep:["GoMart","QuillaOfertas"], meta:600000000, estado:"Idea", owner:"", metrica:"Asistentes / patrocinios cerrados"},
  {id:"GoHotels", color:"#B8860B", fn:"Cadena de hoteles conectada al turismo de WCF y a la red GoMart.", input:"Demanda turística y capital", output:"Habitaciones ocupadas", dep:["WCF","GoMart"], meta:400000000, estado:"Idea", owner:"", metrica:"Ocupación % / ingreso por habitación"},
@@ -138,8 +138,8 @@ function buildCards(){
     <p class="fn">${esc(m.fn)}</p>
     <div class="row"><label>entra</label><div>${esc(m.input)}</div></div>
     <div class="row"><label>sale</label><div>${esc(m.output)}</div></div>
-    <div class="row"><label>depende de</label><div class="chips">${m.dep.length ? m.dep.map(d=>`<span class="chip">${d}</span>`).join("") : '<span class="chip">nada (arranca solo)</span>'}</div></div>
-    <div class="row"><label>bloquea a</label><div class="chips">${(()=>{const b=S.filter(x=>x.dep.includes(m.id)).map(x=>`<span class="chip">${x.id}</span>`);return b.length?b.join(""):'<span class="chip">nada</span>'})()}</div></div>
+    <div class="row"><label>depende de</label><div class="chips">${(()=>{const c=[...m.dep, ...(m.req||[])].map(d=>`<span class="chip">${esc(d)}</span>`);return c.length?c.join(""):'<span class="chip">nada (arranca solo)</span>'})()}</div></div>
+    <div class="row"><label>bloquea a</label><div class="chips">${(()=>{const b=S.filter(x=>x.dep.includes(m.id)).map(x=>`<span class="chip">${x.id}</span>`);if(m.blocks)b.push(`<span class="chip">${esc(m.blocks)}</span>`);return b.length?b.join(""):'<span class="chip">nada</span>'})()}</div></div>
     <div class="row"><label>métrica</label><div>${esc(m.metrica)}</div></div>
     <div class="row"><label for="o${i}">dueño</label><input id="o${i}" data-i="${i}" data-f="owner" placeholder="¿Quién lo corre?" value="${esc(m.owner)}"></div>
     <div class="row"><label for="e${i}">estado</label><select id="e${i}" data-i="${i}" data-f="estado">${ESTADOS.map(e=>`<option${e===m.estado?" selected":""}>${e}</option>`).join("")}</select></div>
@@ -177,7 +177,7 @@ function code(){
     L.push(`  funcion:    <span class="s">"${esc(m.fn)}"</span>,`);
     L.push(`  entra:      <span class="s">"${esc(m.input)}"</span>,`);
     L.push(`  sale:       <span class="s">"${esc(m.output)}"</span>,`);
-    L.push(`  depende_de: [${m.dep.map(d=>`<span class="s">"${d}"</span>`).join(", ")}],`);
+    L.push(`  depende_de: [${[...m.dep, ...(m.req||[])].map(d=>`<span class="s">"${esc(d)}"</span>`).join(", ")}],`);
     L.push(`  dueno:      <span class="s">"${esc(m.owner||"sin asignar")}"</span>,`);
     L.push(`  estado:     <span class="s">"${m.estado}"</span>,`);
     L.push(`  meta:       <span class="n">${m.meta}</span>,  logrado: <span class="n">${m.logrado}</span>`);
