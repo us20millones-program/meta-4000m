@@ -78,6 +78,19 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 .it input[type=checkbox]{width:18px;height:18px;flex:none}
 .it .x{background:none;color:#7A97A8;padding:2px 8px}
 .it.d .ti{text-decoration:line-through;opacity:.6}
+#tabs{display:flex;overflow-x:auto;background:#081A28;margin:-14px -18px 12px;border-bottom:1px solid #1d3b52}
+#tabs[hidden]{display:none}
+.tab{display:flex;align-items:center;gap:6px;flex:none;padding:8px 8px 8px 14px;font-size:.8rem;color:#7A97A8;border-right:1px solid #1d3b52;white-space:nowrap}
+.tab.on{background:#0B2233;color:#DCEBF2;box-shadow:inset 0 2px 0 #F5B700}
+.tab button{background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer;border-radius:3px}
+.tab small{color:#5B7080}
+.tab .cl{padding:0 5px}.tab .cl:hover{background:#1c4766}
+.ln{display:inline-block;min-width:2.2ch;margin-right:14px;text-align:right;color:#5B7080;user-select:none}
+.it .ln{margin-right:0}
+.nw{display:flex;border:1px solid #1d3b52;border-radius:4px;background:#0F2A3D}
+.nw pre,.nw textarea{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.85rem;line-height:1.6;padding:6px 8px;margin:0}
+.nw pre{background:#0B2233;color:#5B7080;text-align:right;overflow:hidden;min-width:3ch;user-select:none;border-radius:0}
+.nw textarea{border:0;border-radius:0;white-space:pre;overflow:auto}
 @media (max-width:760px){.ide{grid-template-columns:1fr}#tree{border-right:0;border-bottom:1px solid #1d3b52;max-height:320px}}
 @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
@@ -111,7 +124,7 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
   <p class="sub">Abre cada proyecto como una carpeta. En <b>aporte.ts</b> ves cuánto suma a la meta general; en <b>puerta-de-avance.md</b>, lo que falta para pasar de estado.</p>
   <div class="ide">
     <nav id="tree" aria-label="Árbol de proyectos"></nav>
-    <div class="ed"><div id="crumb"></div><div id="edit"></div></div>
+    <div class="ed"><div id="tabs" hidden></div><div id="crumb"></div><div id="edit"></div></div>
   </div>
 </section>
 
@@ -271,7 +284,8 @@ const SEED = {
  DPS:{"recursos/requeridos.md":["Productos de aseo hogar","Pollo y cerdo fresco nacional","Harina de trigo El Lobo"],"personas/clientes-objetivo.md":"50 negocios del centro afiliados a GoMart"}
 };
 const GP = "avance/puerta-de-avance.md";
-let A = {}, sel = null, ta = null;
+let A = {}, sel = null, ta = null, tabs = [];
+const gutter = v => Array.from({length: String(v).split("\n").length}, (_, i) => i + 1).join("\n");
 try { A = JSON.parse(localStorage.getItem(AK) || "{}"); } catch(e) {}
 const openM = new Set(), openF = new Set();
 const typeOf = p => (BR.find(b => b[0]+"/"+b[1] === p) || [])[2];
@@ -312,6 +326,7 @@ function renderTree(){
   $("tree").innerHTML = h;
 }
 function renderEd(){
+  renderTabs();
   if (!sel) { $("crumb").textContent = "META › selecciona un proyecto"; $("edit").innerHTML = '<p class="c">Abre un proyecto en el árbol y elige un archivo para ver o editar su contexto.</p>'; return; }
   const m = S.find(x => x.id === sel.m), p = sel.p, ty = typeOf(p);
   $("crumb").textContent = "META › " + m.id + " › " + p.replace("/", " › ");
@@ -327,17 +342,35 @@ function renderEd(){
       `tareas      ${d} de ${t} hechas`,
       `depende_de  ${[...m.dep, ...(m.req||[])].join(", ") || "nada"}`,
       `bloquea_a   ${bl.join(", ") || "nada"}`
-    ].map(esc).join("\n")}</pre>`;
+    ].map((l,i) => `<span class="ln">${i+1}</span>${esc(l)}`).join("\n")}</pre>`;
   } else if (ty === "check") {
     if (p === GP) h += `<p class="c">Para pasar de «${esc(m.estado)}» a «${esc(NEXT[m.estado])}» se requiere:</p>`;
     const l = get(m,p);
-    h += l.map((x,i) => `<div class="it${x.d?" d":""}"><input type="checkbox" data-c="${i}"${x.d?" checked":""} aria-label="Hecho"><input class="ti" data-t="${i}" value="${esc(x.t)}"><button class="x" data-x="${i}" aria-label="Quitar">✕</button></div>`).join("");
+    h += l.map((x,i) => `<div class="it${x.d?" d":""}"><span class="ln">${i+1}</span><input type="checkbox" data-c="${i}"${x.d?" checked":""} aria-label="Hecho"><input class="ti" data-t="${i}" value="${esc(x.t)}"><button class="x" data-x="${i}" aria-label="Quitar">✕</button></div>`).join("");
     h += `<div class="it"><input class="ti" id="nw" placeholder="Añadir ítem y presionar Enter"><button id="add">Añadir</button></div><p class="c">${l.filter(x=>x.d).length} de ${l.length} hechas</p>`;
-  } else h += `<textarea id="tx" placeholder="Escribe aquí el contexto de este punto…">${esc(get(m,p))}</textarea>`;
+  } else {
+    const tv = get(m,p);
+    h += `<div class="nw"><pre id="gut">${gutter(tv)}</pre><textarea id="tx" wrap="off" spellcheck="false" placeholder="Escribe aquí el contexto de este punto…">${esc(tv)}</textarea></div>`;
+  }
   $("edit").innerHTML = h;
 }
+function pick(m,p){ sel = {m,p}; if (!tabs.some(t => t.m === m && t.p === p)) tabs.push({m,p}); }
+function renderTabs(){
+  $("tabs").innerHTML = tabs.map((t,i) => `<div class="tab${sel&&sel.m===t.m&&sel.p===t.p?" on":""}"><button data-tab="${i}">${esc(t.p.split("/")[1])} <small>${esc(t.m)}</small></button><button class="cl" data-close="${i}" aria-label="Cerrar pestaña">✕</button></div>`).join("");
+  $("tabs").hidden = !tabs.length;
+}
+$("tabs").addEventListener("click", e => {
+  const c = e.target.closest("[data-close]"), s = e.target.closest("[data-tab]");
+  if (c) {
+    const i = +c.dataset.close, t = tabs[i], was = sel && sel.m === t.m && sel.p === t.p;
+    tabs.splice(i, 1);
+    if (was) { const n = tabs[i] || tabs[i-1]; sel = n ? {m:n.m, p:n.p} : null; }
+  } else if (s) { const t = tabs[+s.dataset.tab]; sel = {m:t.m, p:t.p}; }
+  else return;
+  renderTree(); renderEd();
+});
 function openMod(id){
-  openM.add(id); openF.add(id+"/aporte"); sel = {m:id, p:"aporte/aporte.ts"};
+  openM.add(id); openF.add(id+"/aporte"); pick(id, "aporte/aporte.ts");
   renderTree(); renderEd(); $("explorer-sec").scrollIntoView({behavior:"smooth"});
 }
 const curM = () => S.find(x => x.id === sel.m);
@@ -351,12 +384,12 @@ $("tree").addEventListener("click", e => {
   const d = b.dataset;
   if (d.m) { openM.has(d.m) ? openM.delete(d.m) : openM.add(d.m); }
   else if (d.f) { const k = d.f.replace("|","/"); openF.has(k) ? openF.delete(k) : openF.add(k); }
-  else if (d.p) { const [mm, ...r] = d.p.split("|"); sel = {m:mm, p:r.join("|")}; }
+  else if (d.p) { const [mm, ...r] = d.p.split("|"); pick(mm, r.join("|")); }
   renderTree(); renderEd();
 });
 $("edit").addEventListener("input", e => {
   if (!sel) return; const m = curM(), p = sel.p, t = e.target;
-  if (t.id === "tx") setV(m, p, t.value);
+  if (t.id === "tx") { setV(m, p, t.value); $("gut").textContent = gutter(t.value); $("gut").scrollTop = t.scrollTop; }
   else if (t.dataset.t !== undefined) { const l = get(m,p).slice(); l[t.dataset.t] = {...l[t.dataset.t], t:t.value}; setV(m, p, l); }
 });
 $("edit").addEventListener("change", e => {
@@ -370,6 +403,7 @@ $("edit").addEventListener("click", e => {
   else if (t.id === "add") addItem();
 });
 $("edit").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "nw") { e.preventDefault(); addItem(); } });
+$("edit").addEventListener("scroll", e => { if (e.target.id === "tx") $("gut").scrollTop = e.target.scrollTop; }, true);
 $("mods").addEventListener("change", () => { renderTree(); if (sel) renderEd(); });
 document.addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) openMod(b.dataset.open); });
 function pushA(){
