@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>META 4.000.000.000 COP · Workspace</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0F2A3D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="META 4.000M">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EAF0F2;--ink:#0F2A3D;--mut:#5B7080;--card:#fff;--line:#CBD7DD;--code:#0F2A3D;--codeink:#DCEBF2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+header{padding:40px 20px 28px;max-width:1100px;margin:0 auto}
+h1{font-weight:800;font-size:clamp(2rem,6vw,3.6rem);line-height:1.02;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--mut);margin:0 0 24px;max-width:60ch}
+.big{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;margin-bottom:12px}
+.big b{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800}
+.big span{color:var(--mut)}
+.track{display:flex;height:26px;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg{height:100%;transition:width .3s}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:.85rem;color:var(--mut)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+#check{margin-top:12px;font-size:.9rem}
+.ok{color:#0E7A5F}.warn{color:#B4531A}
+main{max-width:1100px;margin:0 auto;padding:0 20px 40px;display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:6px;padding:18px}
+.card h2{margin:0;font-size:1.3rem;font-weight:800}
+.fn{margin:2px 0 12px;color:var(--mut);font-size:.92rem}
+.row{display:grid;grid-template-columns:92px 1fr;gap:6px 10px;font-size:.88rem;margin:6px 0;align-items:start}
+.row label{color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:#E3ECF0;border-radius:4px;padding:1px 8px;font-size:.8rem}
+input,select{width:100%;font:inherit;font-size:.88rem;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #F5B700;outline-offset:1px}
+.money{font-family:"JetBrains Mono",monospace}
+.bar{height:6px;background:#E3ECF0;border-radius:3px;margin-top:10px;overflow:hidden}
+.bar div{height:100%;background:var(--c);transition:width .3s}
+.pct{font-size:.8rem;color:var(--mut);text-align:right;margin-top:3px}
+section.codep{max-width:1100px;margin:0 auto;padding:0 20px 60px}
+section.codep h2{font-size:1.4rem;margin:0 0 4px}
+.bar2{display:flex;gap:10px;align-items:center;margin:8px 0 10px}
+button{font:inherit;font-size:.88rem;padding:6px 14px;border:0;border-radius:4px;background:var(--ink);color:#fff;cursor:pointer}
+pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.6}
+.k{color:#F5B700}.s{color:#7FD6C2}.c{color:#7A97A8}.n{color:#FF8FB1}
+@media (max-width:420px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>META&nbsp;4.000.000.000&nbsp;COP</h1>
+  <p class="sub">Cada proyecto es un módulo con una función, una entrada, una salida y una métrica. La meta es la suma de lo que aporta cada uno.</p>
+  <div class="big"><b id="logrado" class="money">$0</b><span>logrado de <span class="money" id="metaTxt"></span> · <span id="pctTotal">0%</span></span></div>
+  <div class="track" id="track" role="img" aria-label="Progreso total hacia la meta"></div>
+  <div class="legend" id="legend"></div>
+  <div id="check"></div>
+  <div style="margin-top:14px"><button id="install" hidden>Instalar como app</button></div>
+</header>
+
+<main id="mods"></main>
+
+<section class="codep">
+  <h2>El sistema como código</h2>
+  <div class="bar2"><button id="copy">Copiar código</button><span id="copied" class="sub" style="margin:0"></span></div>
+  <pre id="code" class="mono" aria-label="Representación del sistema como código"></pre>
+</section>
+
+<script>
+const META = 4000000000;
+const KEY = "meta4000_v1";
+
+/* Aportes iniciales = propuesta editable. Cambia las metas por módulo en cada tarjeta. */
+const BASE = [
+ {id:"GoMart", color:"#0E8F8F", fn:"Motor de la red: comercios afiliados, wallet de bonos y gamificación (compras en A = bonos en B).", input:"Comercios afiliados y clientes", output:"Tráfico, transacciones y bonos canjeados", dep:[], meta:900000000, estado:"En construcción", owner:"", metrica:"Comercios activos / bonos canjeados al mes"},
+ {id:"QuillaOfertas", color:"#C2185B", fn:"Revista física y virtual que publica los negocios afiliados a GoMart.", input:"Negocios afiliados", output:"Pauta, visibilidad y clientes para la red", dep:["GoMart"], meta:300000000, estado:"En construcción", owner:"", metrica:"Anunciantes por edición / ingreso por pauta"},
+ {id:"Mesolandia", color:"#E07A1F", fn:"Centro de producción masiva de alimentos para venta a domicilio.", input:"Materia prima y pedidos", output:"Alimentos entregados a domicilio", dep:["GoMart"], meta:500000000, estado:"Lista", owner:"", metrica:"Pedidos por día / margen por pedido"},
+ {id:"OficinasVirtuales", color:"#3B6FB6", fn:"Representación internacional en Colombia de empresas extranjeras.", input:"Empresas extranjeras interesadas", output:"Contratos de representación y oficina virtual", dep:[], meta:300000000, estado:"En construcción", owner:"", metrica:"Clientes activos / ingreso mensual recurrente"},
+ {id:"WCF", color:"#7B3FA0", fn:"World Carnival Festival: turismo cultural alrededor del Carnaval, con mercado europeo.", input:"Tráfico, aliados y reputación", output:"Eventos, paquetes turísticos y patrocinios", dep:["GoMart","QuillaOfertas"], meta:600000000, estado:"Idea", owner:"", metrica:"Asistentes / patrocinios cerrados"},
+ {id:"GoHotels", color:"#B8860B", fn:"Cadena de hoteles conectada al turismo de WCF y a la red GoMart.", input:"Demanda turística y capital", output:"Habitaciones ocupadas", dep:["WCF","GoMart"], meta:400000000, estado:"Idea", owner:"", metrica:"Ocupación % / ingreso por habitación"},
+ {id:"PrevisionExequial", color:"#5A6B78", fn:"Previsión exequial para las familias de la red: cobertura y servicios en un solo plan.", input:"Familias afiliadas y aportes por plan", output:"Planes vigentes y cobertura activa", dep:["GoMart"], meta:300000000, estado:"En construcción", owner:"", metrica:"Planes activos / ingreso mensual recurrente"},
+ {id:"DPS", color:"#8A5A2B", fn:"Direct Products Supply: abastece a 50 negocios del centro afiliados a GoMart con productos de aseo hogar, pollo y cerdo fresco nacional y harina de trigo El Lobo.", input:"Pedidos de los 50 negocios y compra a proveedores", output:"Productos entregados y facturados a los negocios", dep:["GoMart"], meta:300000000, estado:"En construcción", owner:"", metrica:"Negocios activos comprando (de 50) / pedidos por semana"},
+ {id:"TokenMart", color:"#1F8A4C", fn:"Adquisición cooperativa de propiedades en beneficio de todos los clientes de la red.", input:"Aportes cooperativos y red de clientes", output:"Propiedades adquiridas (patrimonio)", dep:["GoMart"], meta:400000000, estado:"Idea", owner:"", metrica:"Propiedades adquiridas / valor del patrimonio"}
+];
+const ESTADOS = ["Idea","En construcción","Lista","Operando"];
+
+let S = BASE.map(m => ({...m, logrado:0}));
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved) S.forEach(m => { const s = saved[m.id]; if (s) Object.assign(m, s); });
+} catch(e) {}
+function save(){
+  try { const o = {}; S.forEach(m => o[m.id] = {meta:m.meta, logrado:m.logrado, estado:m.estado, owner:m.owner}); localStorage.setItem(KEY, JSON.stringify(o)); } catch(e) {}
+}
+
+const $ = id => document.getElementById(id);
+const cop = n => "$" + Math.round(n).toLocaleString("es-CO");
+const num = v => parseInt(String(v).replace(/\D/g,"")) || 0;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function buildCards(){
+  $("mods").innerHTML = S.map((m,i) => `
+  <article class="card" style="--c:${m.color}">
+    <h2>${m.id}</h2>
+    <p class="fn">${esc(m.fn)}</p>
+    <div class="row"><label>entra</label><div>${esc(m.input)}</div></div>
+    <div class="row"><label>sale</label><div>${esc(m.output)}</div></div>
+    <div class="row"><label>depende de</label><div class="chips">${m.dep.length ? m.dep.map(d=>`<span class="chip">${d}</span>`).join("") : '<span class="chip">nada (arranca solo)</span>'}</div></div>
+    <div class="row"><label>bloquea a</label><div class="chips">${(()=>{const b=S.filter(x=>x.dep.includes(m.id)).map(x=>`<span class="chip">${x.id}</span>`);return b.length?b.join(""):'<span class="chip">nada</span>'})()}</div></div>
+    <div class="row"><label>métrica</label><div>${esc(m.metrica)}</div></div>
+    <div class="row"><label for="o${i}">dueño</label><input id="o${i}" data-i="${i}" data-f="owner" placeholder="¿Quién lo corre?" value="${esc(m.owner)}"></div>
+    <div class="row"><label for="e${i}">estado</label><select id="e${i}" data-i="${i}" data-f="estado">${ESTADOS.map(e=>`<option${e===m.estado?" selected":""}>${e}</option>`).join("")}</select></div>
+    <div class="row"><label for="m${i}">meta COP</label><input class="money" id="m${i}" inputmode="numeric" data-i="${i}" data-f="meta" value="${m.meta.toLocaleString("es-CO")}"></div>
+    <div class="row"><label for="l${i}">logrado COP</label><input class="money" id="l${i}" inputmode="numeric" data-i="${i}" data-f="logrado" value="${m.logrado.toLocaleString("es-CO")}"></div>
+    <div class="bar"><div id="b${i}"></div></div><div class="pct" id="p${i}"></div>
+  </article>`).join("");
+}
+
+function summary(){
+  const lo = S.reduce((a,m)=>a+m.logrado,0), me = S.reduce((a,m)=>a+m.meta,0);
+  $("logrado").textContent = cop(lo);
+  $("metaTxt").textContent = cop(META);
+  $("pctTotal").textContent = (lo/META*100).toFixed(1).replace(".",",") + "%";
+  $("track").innerHTML = S.map(m=>`<div class="seg" title="${m.id}: ${cop(m.logrado)}" style="width:${Math.min(100,m.logrado/META*100)}%;background:${m.color}"></div>`).join("");
+  $("legend").innerHTML = S.map(m=>`<span><i style="background:${m.color}"></i>${m.id}</span>`).join("");
+  const d = META - me;
+  $("check").innerHTML = d===0
+    ? `<span class="ok">Las metas por módulo suman exactamente ${cop(META)}. El sistema cierra.</span>`
+    : `<span class="warn">Las metas por módulo suman ${cop(me)}. ${d>0?"Faltan "+cop(d)+" por asignar":"Sobran "+cop(-d)+", reduce algún módulo"} para cerrar en ${cop(META)}.</span>`;
+  S.forEach((m,i)=>{
+    const p = m.meta ? Math.min(100, m.logrado/m.meta*100) : 0;
+    $("b"+i).style.width = p+"%";
+    $("p"+i).textContent = p.toFixed(0)+"% de su meta";
+  });
+}
+
+function code(){
+  const lo = S.reduce((a,m)=>a+m.logrado,0);
+  const L = [];
+  L.push(`<span class="c">// workspace: META-4.000.000.000-COP</span>`);
+  L.push(`<span class="k">const</span> META = <span class="n">${META.toLocaleString("en-US").replace(/,/g,"_")}</span>; <span class="c">// COP</span>\n`);
+  S.forEach(m=>{
+    L.push(`<span class="k">module</span> ${m.id} {`);
+    L.push(`  funcion:    <span class="s">"${esc(m.fn)}"</span>,`);
+    L.push(`  entra:      <span class="s">"${esc(m.input)}"</span>,`);
+    L.push(`  sale:       <span class="s">"${esc(m.output)}"</span>,`);
+    L.push(`  depende_de: [${m.dep.map(d=>`<span class="s">"${d}"</span>`).join(", ")}],`);
+    L.push(`  dueno:      <span class="s">"${esc(m.owner||"sin asignar")}"</span>,`);
+    L.push(`  estado:     <span class="s">"${m.estado}"</span>,`);
+    L.push(`  meta:       <span class="n">${m.meta}</span>,  logrado: <span class="n">${m.logrado}</span>`);
+    L.push(`}\n`);
+  });
+  L.push(`<span class="k">function</span> main() {`);
+  L.push(`  <span class="k">return</span> Σ modulo.logrado; <span class="c">// ${lo} / ${META} = ${(lo/META*100).toFixed(1)}%</span>`);
+  L.push(`}`);
+  $("code").innerHTML = L.join("\n");
+}
+
+function refresh(){ summary(); code(); save(); }
+
+$("mods").addEventListener("input", e=>{
+  const t = e.target, m = S[t.dataset.i]; if(!m) return;
+  const f = t.dataset.f;
+  if (f==="meta"||f==="logrado"){ m[f] = num(t.value); }
+  else m[f] = t.value;
+  refresh();
+});
+$("mods").addEventListener("change", e=>{
+  const t = e.target, f = t.dataset.f;
+  if (f==="meta"||f==="logrado") t.value = S[t.dataset.i][f].toLocaleString("es-CO");
+});
+$("copy").addEventListener("click", async ()=>{
+  try { await navigator.clipboard.writeText($("code").innerText); $("copied").textContent = "Código copiado"; }
+  catch(e){ $("copied").textContent = "No se pudo copiar, selecciona el texto manualmente"; }
+});
+
+buildCards(); refresh();
+
+/* App instalable (PWA) */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+let dp = null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); dp = e;
+  const b = $("install"); b.hidden = false;
+  b.onclick = async () => { b.hidden = true; dp.prompt(); await dp.userChoice; dp = null; };
+});
+</script>
+</body>
+</html>

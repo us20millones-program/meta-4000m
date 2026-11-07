@@ -1,0 +1,16 @@
+{
+  "name": "META 4.000.000.000 COP",
+  "short_name": "META 4.000M",
+  "description": "Tablero de la meta de 4.000 millones de pesos por módulos.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EAF0F2",
+  "theme_color": "#0F2A3D",
+  "lang": "es",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
