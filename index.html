@@ -52,6 +52,15 @@ section.codep h2{font-size:1.4rem;margin:0 0 4px}
 button{font:inherit;font-size:.88rem;padding:6px 14px;border:0;border-radius:4px;background:var(--ink);color:#fff;cursor:pointer}
 pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.6}
 .k{color:#F5B700}.s{color:#7FD6C2}.c{color:#7A97A8}.n{color:#FF8FB1}
+#login{position:fixed;inset:0;background:rgba(15,42,61,.92);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+#login[hidden]{display:none}
+#login form{background:#fff;border-radius:8px;padding:24px;width:100%;max-width:360px;display:grid;gap:10px}
+#login h2{margin:0;font-size:1.3rem}
+#login p{margin:0;color:var(--mut);font-size:.9rem}
+#lerr{color:#B4531A;font-size:.88rem;min-height:1.2em}
+.link{background:none;color:var(--mut);text-decoration:underline;padding:4px}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+#sync{font-size:.85rem;color:var(--mut)}
 @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
 </head>
@@ -63,8 +72,19 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
   <div class="track" id="track" role="img" aria-label="Progreso total hacia la meta"></div>
   <div class="legend" id="legend"></div>
   <div id="check"></div>
-  <div style="margin-top:14px"><button id="install" hidden>Instalar como app</button></div>
+  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><span id="sync"></span></div>
 </header>
+<div id="login" hidden>
+  <form id="lf">
+    <h2>Entrar al tablero</h2>
+    <p>Tus metas se guardan en la nube y se ven igual en todos tus dispositivos.</p>
+    <input id="le" type="email" placeholder="Correo" autocomplete="username" required>
+    <input id="lp" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+    <div id="lerr" role="alert"></div>
+    <button type="submit">Entrar</button>
+    <button type="button" id="skip" class="link">Usar sin cuenta (solo este dispositivo)</button>
+  </form>
+</div>
 
 <main id="mods"></main>
 
@@ -74,9 +94,13 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
   <pre id="code" class="mono" aria-label="Representación del sistema como código"></pre>
 </section>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const META = 4000000000;
 const KEY = "meta4000_v1";
+const SB_URL = "https://czqucfdsepaudrpypctz.supabase.co";
+const SB_KEY = "sb_publishable_bXsOY8SWOgbFJ-mQgtu78g_syXEY-fg";
+let sb = null, user = null, tmr = null;
 
 /* Aportes iniciales = propuesta editable. Cambia las metas por módulo en cada tarjeta. */
 const BASE = [
@@ -99,6 +123,7 @@ try {
 } catch(e) {}
 function save(){
   try { const o = {}; S.forEach(m => o[m.id] = {meta:m.meta, logrado:m.logrado, estado:m.estado, owner:m.owner}); localStorage.setItem(KEY, JSON.stringify(o)); } catch(e) {}
+  push();
 }
 
 const $ = id => document.getElementById(id);
@@ -194,6 +219,64 @@ window.addEventListener("beforeinstallprompt", e => {
   const b = $("install"); b.hidden = false;
   b.onclick = async () => { b.hidden = true; dp.prompt(); await dp.userChoice; dp = null; };
 });
+
+/* Nube (Supabase): inicio de sesión + sincronización */
+const setSync = t => { $("sync").textContent = t; };
+
+function push(){
+  if (!sb || !user) return;
+  clearTimeout(tmr);
+  tmr = setTimeout(async () => {
+    const rows = S.map(m => ({user_id:user.id, id:m.id, meta:m.meta, logrado:m.logrado, estado:m.estado, owner:m.owner}));
+    const {error} = await sb.from("meta_modulos").upsert(rows, {onConflict:"user_id,id"});
+    setSync(error ? "Sin sincronizar: " + error.message : "Sincronizado");
+  }, 600);
+}
+
+async function pull(){
+  if (!sb || !user) return;
+  setSync("Sincronizando...");
+  const {data, error} = await sb.from("meta_modulos").select("*");
+  if (error) { setSync("Sin sincronizar: " + error.message); return; }
+  if (!data.length) { push(); return; }
+  data.forEach(r => {
+    const m = S.find(x => x.id === r.id);
+    if (m) { m.meta = Number(r.meta); m.logrado = Number(r.logrado); m.estado = r.estado; m.owner = r.owner || ""; }
+  });
+  buildCards(); summary(); code();
+  try { const o = {}; S.forEach(m => o[m.id] = {meta:m.meta, logrado:m.logrado, estado:m.estado, owner:m.owner}); localStorage.setItem(KEY, JSON.stringify(o)); } catch(e) {}
+  setSync("Sincronizado");
+}
+
+async function onLogin(u){
+  user = u;
+  $("login").hidden = true;
+  $("logout").hidden = false;
+  await pull();
+}
+
+(async function startAuth(){
+  try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e) { sb = null; }
+  if (!sb) { setSync("Modo local (sin conexión a la nube)"); return; }
+  const {data} = await sb.auth.getSession();
+  if (data.session) await onLogin(data.session.user);
+  else $("login").hidden = false;
+})();
+
+$("lf").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!sb) { $("lerr").textContent = "No se pudo conectar con la nube."; return; }
+  $("lerr").textContent = "";
+  const {data, error} = await sb.auth.signInWithPassword({email:$("le").value.trim(), password:$("lp").value});
+  if (error) { $("lerr").textContent = "Correo o contraseña incorrectos."; return; }
+  $("lp").value = "";
+  await onLogin(data.user);
+});
+$("skip").addEventListener("click", () => { $("login").hidden = true; setSync("Modo local: solo este dispositivo"); });
+$("logout").addEventListener("click", async () => {
+  await sb.auth.signOut(); user = null; $("logout").hidden = true; setSync(""); $("login").hidden = false;
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
 </script>
 </body>
 </html>
