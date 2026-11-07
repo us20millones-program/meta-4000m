@@ -72,7 +72,7 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
   <div class="track" id="track" role="img" aria-label="Progreso total hacia la meta"></div>
   <div class="legend" id="legend"></div>
   <div id="check"></div>
-  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><span id="sync"></span></div>
+  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><button id="chpw" class="link" hidden>Cambiar contraseña</button><span id="sync"></span></div>
 </header>
 <div id="login" hidden>
   <form id="lf">
@@ -252,6 +252,7 @@ async function onLogin(u){
   user = u;
   $("login").hidden = true;
   $("logout").hidden = false;
+  $("chpw").hidden = false;
   await pull();
 }
 
@@ -274,7 +275,17 @@ $("lf").addEventListener("submit", async e => {
 });
 $("skip").addEventListener("click", () => { $("login").hidden = true; setSync("Modo local: solo este dispositivo"); });
 $("logout").addEventListener("click", async () => {
-  await sb.auth.signOut(); user = null; $("logout").hidden = true; setSync(""); $("login").hidden = false;
+  await sb.auth.signOut(); user = null; $("logout").hidden = true; $("chpw").hidden = true; setSync(""); $("login").hidden = false;
+});
+$("chpw").addEventListener("click", async () => {
+  const p = prompt("Escribe tu nueva contraseña (mínimo 8 caracteres):");
+  if (p === null) return;
+  if (p.length < 8) { alert("La contraseña debe tener al menos 8 caracteres."); return; }
+  const p2 = prompt("Escríbela otra vez para confirmar:");
+  if (p2 !== p) { alert("Las contraseñas no coinciden. No se cambió nada."); return; }
+  const {error} = await sb.auth.updateUser({password:p});
+  if (error) { alert("No se pudo cambiar: " + error.message); return; }
+  alert("Contraseña cambiada. Úsala la próxima vez que entres.");
 });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
 </script>
