@@ -1,7 +1,7 @@
 {
-  "name": "META 4.000.000.000 COP",
-  "short_name": "META 4.000M",
-  "description": "Tablero de la meta de 4.000 millones de pesos por módulos.",
+  "name": "META 70.000.000.000 COP",
+  "short_name": "META 70.000M",
+  "description": "Tablero de la meta en pesos por módulos.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

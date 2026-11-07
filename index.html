@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0F2A3D">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="META 4.000M">
+<meta name="apple-mobile-web-app-title" content="META">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -102,19 +102,20 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 .mainb .link{color:#7FD6C2;padding:0;font-size:inherit}
 .mainb i{color:#F5B700;font-style:normal}
 .c2{font-size:.85rem;color:var(--mut)}
+.fr{display:flex}.fr .t.l2{flex:1;min-width:0}.t.rn{width:auto;flex:none;padding:4px 10px;color:#7A97A8}
 @media (max-width:760px){.ide{grid-template-columns:1fr}#tree{border-right:0;border-bottom:1px solid #1d3b52;max-height:320px}}
 @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
-  <h1>META&nbsp;4.000.000.000&nbsp;COP</h1>
+  <h1 id="h1t">META&nbsp;4.000.000.000&nbsp;COP</h1>
   <p class="sub">Cada proyecto es un módulo con una función, una entrada, una salida y una métrica. La meta es la suma de lo que aporta cada uno.</p>
   <div class="big"><b id="logrado" class="money">$0</b><span>logrado de <span class="money" id="metaTxt"></span> · <span id="pctTotal">0%</span></span></div>
   <div class="track" id="track" role="img" aria-label="Progreso total hacia la meta"></div>
   <div class="legend" id="legend"></div>
   <div id="check"></div>
-  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><button id="chpw" class="link" hidden>Cambiar contraseña</button><span id="sync"></span><span id="sync2"></span></div>
+  <div class="tools"><button id="install" hidden>Instalar como app</button><button id="logout" class="link" hidden>Cerrar sesión</button><button id="chpw" class="link" hidden>Cambiar contraseña</button><button id="chg" class="link">Cambiar meta total</button><span id="sync"></span><span id="sync2"></span></div>
 </header>
 <div id="login" hidden>
   <form id="lf">
@@ -134,7 +135,7 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 
 <section class="codep" id="explorer-sec">
   <h2>Explorador de proyectos</h2>
-  <p class="sub">Abre cada proyecto como una carpeta. En <b>aporte.ts</b> ves cuánto suma a la meta general; en <b>puerta-de-avance.md</b>, lo que falta para pasar de estado.</p>
+  <p class="sub">Abre cada proyecto como una carpeta. En <b>resumen/aporte.ts</b> ves cuánto suma a la meta general; en <b>puerta-de-avance.md</b>, lo que falta para pasar de estado.</p>
   <div class="ide">
     <nav id="tree" aria-label="Árbol de proyectos"></nav>
     <div class="ed"><div id="tabs" hidden></div><div id="crumb"></div><div id="edit"></div></div>
@@ -149,7 +150,8 @@ pre{margin:0;background:var(--code);color:var(--codeink);padding:20px;border-rad
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-const META = 4000000000;
+let META = 4000000000;
+try { const tv = +localStorage.getItem("meta4000_total"); if (tv > 0) META = tv; } catch(e) {}
 const KEY = "meta4000_v1";
 const SB_URL = "https://czqucfdsepaudrpypctz.supabase.co";
 const SB_KEY = "sb_publishable_bXsOY8SWOgbFJ-mQgtu78g_syXEY-fg";
@@ -224,7 +226,7 @@ function summary(){
 function code(){
   const lo = S.reduce((a,m)=>a+m.logrado,0);
   const L = [];
-  L.push(`<span class="c">// workspace: META-4.000.000.000-COP</span>`);
+  L.push(`<span class="c">// workspace: META-${META.toLocaleString("es-CO")}-COP</span>`);
   L.push(`<span class="k">const</span> META = <span class="n">${META.toLocaleString("en-US").replace(/,/g,"_")}</span>; <span class="c">// COP</span>\n`);
   S.forEach(m=>{
     L.push(`<span class="k">module</span> ${m.id} {`);
@@ -277,7 +279,7 @@ window.addEventListener("beforeinstallprompt", e => {
 /* Explorador de proyectos (árbol) */
 const AK = "meta4000_arbol_v1";
 const BR = [
- ["aporte","aporte.ts","calc"],
+ ["resumen","aporte.ts","calc"],
  ["avance","puerta-de-avance.md","check"],
  ["recursos","requeridos.md","check"],["recursos","existentes.md","check"],["recursos","basicos.md","check"],["recursos","faltantes.md","check"],
  ["personas","contactos.md","nota"],["personas","aliados.md","check"],["personas","proveedores.md","check"],["personas","equipo.md","check"],["personas","clientes-objetivo.md","nota"],
@@ -324,14 +326,14 @@ function prog(m){
   return [d, t];
 }
 function renderTree(){
-  let h = `<div class="t l1" style="cursor:default"><span class="ar">▾</span>META-4.000.000.000-COP</div><button class="t l1" data-main="1"><span class="ar"> </span>▶ MAIN</button>`;
+  let h = `<div class="t l1" style="cursor:default"><span class="ar">▾</span>META-${META.toLocaleString("es-CO")}-COP</div><button class="t l1" data-main="1"><span class="ar"> </span>▶ MAIN</button>`;
   S.forEach(m => {
     const o = openM.has(m.id), [d,t] = prog(m);
     h += `<button class="t l1" data-m="${m.id}"><span class="ar">${o?"▾":"▸"}</span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${m.color}"></i>${m.id}<em>${d}/${t}</em></button>`;
     if (!o) return;
     folders(m).forEach(f => {
       const fo = openF.has(m.id+"/"+f), fl = files(m).filter(b => b[0] === f);
-      h += `<button class="t l2" data-f="${m.id}|${esc(f)}"><span class="ar">${fo?"▾":"▸"}</span>${esc(f)}/</button>`;
+      h += `<div class="fr"><button class="t l2" data-f="${m.id}|${esc(f)}"><span class="ar">${fo?"▾":"▸"}</span>${esc(fname(f))}/</button><button class="t rn" data-ren="${esc(f)}" title="Renombrar carpeta" aria-label="Renombrar carpeta ${esc(fname(f))}">✎</button></div>`;
       if (!fo) return;
       fl.forEach(b => {
         const p = f+"/"+b[1], on = sel && sel.m === m.id && sel.p === p;
@@ -349,7 +351,7 @@ function renderEd(){
   renderTabs();
   if (!sel) { $("crumb").textContent = "META › selecciona un proyecto"; $("edit").innerHTML = '<p class="c">Abre un proyecto en el árbol y elige un archivo para ver o editar su contexto.</p>'; return; }
   const m = S.find(x => x.id === sel.m), p = sel.p, ty = typeOf(m,p);
-  $("crumb").textContent = "META › " + m.id + " › " + p.replace("/", " › ");
+  $("crumb").textContent = "META › " + m.id + " › " + fname(p.split("/")[0]) + " › " + p.split("/")[1];
   let h = `<h3>${esc(p.split("/")[1])}</h3>`;
   if (X(m).some(x => x.f+"/"+x.n === p)) h += `<p class="c"><button class="link" id="ren">Renombrar</button> · <button class="link" id="del">Eliminar archivo</button></p>`;
   if (ty === "calc") {
@@ -422,6 +424,40 @@ document.addEventListener("click", e => {
   const mm = (A.__main = A.__main || {}); (mm.rev = mm.rev || []).push(new Date().toLocaleDateString("en-CA")); mm.rev = mm.rev.slice(-20);
   persist(); renderMain();
 });
+function fname(f){ return ((A.__cfg || {}).fn || {})[f] || f; }
+function renFolder(f){
+  const cur = fname(f), raw = prompt("Nuevo nombre para la carpeta «" + cur + "» (aplica a todos los proyectos):", cur);
+  if (raw === null) return;
+  const nn = clean(raw).replace(/\.+$/, ""); if (!nn || nn === cur) return;
+  const all = new Set(); S.forEach(m => folders(m).forEach(x => all.add(x)));
+  if ([...all].some(x => x !== f && fname(x).toLowerCase() === nn.toLowerCase())) { alert("Ya existe una carpeta con ese nombre."); return; }
+  const c = (A.__cfg = A.__cfg || {}); c.fn = c.fn || {};
+  if (nn === f) delete c.fn[f]; else c.fn[f] = nn;
+  persist(); renderTree(); renderEd();
+}
+function setTitle(){
+  const t = META.toLocaleString("es-CO");
+  $("h1t").innerHTML = "META&nbsp;" + t + "&nbsp;COP";
+  document.title = "META " + t + " COP · Workspace";
+}
+function changeMeta(){
+  const raw = prompt("Nueva meta total en millones de COP (por ejemplo 70000 = $70.000 millones):", String(Math.round(META/1e6)));
+  if (raw === null) return;
+  const mm = parseInt(String(raw).replace(/\D/g, ""), 10);
+  if (!mm || mm < 1) { alert("Escribe un número de millones mayor que cero."); return; }
+  const old = S.reduce((a,m) => a + m.meta, 0), nuevo = mm * 1e6;
+  META = nuevo;
+  try { localStorage.setItem("meta4000_total", String(META)); } catch(e) {}
+  (A.__cfg = A.__cfg || {}).meta = META; persist();
+  if (old > 0 && confirm("¿Repartir las metas de los módulos en proporción para que sumen la nueva meta?\n\nAceptar = repartir. Cancelar = dejarlas como están y ajustarlas tú.")) {
+    S.forEach(m => { m.meta = Math.round(m.meta * nuevo / old / 1e6) * 1e6; });
+    const diff = nuevo - S.reduce((a,m) => a + m.meta, 0);
+    if (diff) { const big = S.reduce((a,m) => m.meta > a.meta ? m : a, S[0]); big.meta += diff; }
+    buildCards();
+  }
+  setTitle(); refresh(); renderTree(); renderEd();
+}
+$("chg").addEventListener("click", changeMeta);
 function pick(m,p){ sel = {m,p}; if (!tabs.some(t => t.m === m && t.p === p)) tabs.push({m,p}); }
 function renderTabs(){
   $("tabs").innerHTML = tabs.map((t,i) => `<div class="tab${sel&&sel.m===t.m&&sel.p===t.p?" on":""}"><button data-tab="${i}">${esc(t.p.split("/")[1])} <small>${esc(t.m)}</small></button><button class="cl" data-close="${i}" aria-label="Cerrar pestaña">✕</button></div>`).join("");
@@ -438,7 +474,7 @@ $("tabs").addEventListener("click", e => {
   renderTree(); renderEd();
 });
 function openMod(id){
-  openM.add(id); openF.add(id+"/aporte"); pick(id, "aporte/aporte.ts");
+  openM.add(id); openF.add(id+"/resumen"); pick(id, "resumen/aporte.ts");
   renderTree(); renderEd(); $("explorer-sec").scrollIntoView({behavior:"smooth"});
 }
 const curM = () => S.find(x => x.id === sel.m);
@@ -457,7 +493,7 @@ function addFolder(mid){
   const m = S.find(x => x.id === mid), raw = prompt("Nombre de la nueva carpeta (por ejemplo: ideas, permisos, reuniones):");
   if (raw === null) return;
   const f = clean(raw).replace(/\.+$/, ""); if (!f) return;
-  if (folders(m).some(x => x.toLowerCase() === f.toLowerCase())) { alert("Ya existe una carpeta con ese nombre."); return; }
+  if (folders(m).some(x => x.toLowerCase() === f.toLowerCase() || fname(x).toLowerCase() === f.toLowerCase())) { alert("Ya existe una carpeta con ese nombre."); return; }
   const d = (A[mid] = A[mid] || {}); (d.__f = d.__f || []).push(f);
   persist(); openM.add(mid); openF.add(mid+"/"+f); renderTree();
 }
@@ -491,6 +527,7 @@ $("tree").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   const d = b.dataset;
   if (d.main) { $("mainp").scrollIntoView({behavior:"smooth"}); return; }
+  else if (d.ren) { renFolder(d.ren); return; }
   else if (d.m) { openM.has(d.m) ? openM.delete(d.m) : openM.add(d.m); }
   else if (d.f) { const k = d.f.replace("|","/"); openF.has(k) ? openF.delete(k) : openF.add(k); }
   else if (d.p) { const [mm, ...r] = d.p.split("|"); pick(mm, r.join("|")); }
@@ -535,12 +572,14 @@ async function pullA(){
   const {data, error} = await sb.from("meta_arbol").select("*");
   if (error) { $("sync2").textContent = "Árbol sin sincronizar (¿creaste la tabla meta_arbol?)"; return; }
   data.forEach(r => { A[r.id] = r.data || {}; });
+  const cg = A.__cfg;
+  if (cg && cg.meta > 0 && cg.meta !== META) { META = cg.meta; try { localStorage.setItem("meta4000_total", String(META)); } catch(e) {} setTitle(); summary(); code(); }
   try { localStorage.setItem(AK, JSON.stringify(A)); } catch(e) {}
   $("sync2").textContent = "Árbol sincronizado";
   renderTree(); renderEd();
   if (!data.length) pushA();
 }
-renderTree(); renderEd();
+renderTree(); renderEd(); setTitle();
 
 /* Nube (Supabase): inicio de sesión + sincronización */
 const setSync = t => { $("sync").textContent = t; };
